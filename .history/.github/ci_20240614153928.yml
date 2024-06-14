@@ -1,0 +1,40 @@
+name: Laravel Tests
+
+on:
+  push:
+    branches:
+      - main  # Adjust branch name if needed
+  pull_request:
+    branches:
+      - main  # Adjust branch name if needed
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'  # Adjust PHP version as per your project requirements
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Create SQLite database
+        run: touch database/database.sqlite
+
+      - name: Run database migrations
+        run: php artisan migrate --env=testing --no-interaction -vvv
+
+      - name: Run tests
+        run: php artisan test --env=testing --stop-on-failure
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Build failed on branch ${{ github.ref }}" | mail -s "Laravel Build Failed" tongsreng@itc.edu.kh
+          git log -1 --pretty=format:"%an <%ae>" ${{ github.sha }} | mail -s "Commit Error Notification" $(git log -1 --pretty=format:"%an <%ae>")
